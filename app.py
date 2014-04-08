@@ -20,35 +20,52 @@ class Handler(webapp2.RequestHandler):
     def render(self, template, **kw):
         self.write(self.render_str(template, **kw))
 
-class Art(db.Model):
-    title = db.StringProperty(required = True)
-    art = db.TextProperty(required = True)
+class Post(db.Model):
+    subject = db.StringProperty(required = True)
+    content = db.TextProperty(required = True)
     created = db.DateTimeProperty(auto_now_add = True)
 
 
-class MainPage(Handler):
-    def render_front(self, title="", art="", error=""):
-        arts = db.GqlQuery("SELECT * FROM Art ORDER BY created DESC")
+class MainPageHandler(Handler):
+    def render_front(self, posts=""):
+        posts = db.GqlQuery("SELECT * FROM Post ORDER BY created DESC LIMIT 10")
 
-        self.render("front.html", title=title, art=art, error=error, arts=arts)
+        self.render("front.html", posts=posts)
 
     def get(self):
         self.render_front()
 
-    def post(self):
-        title = self.request.get("title")
-        art = self.request.get("art")
-
-        if title and art:
-            a = Art(title = title, art = art)
-            a.put()
-
-            self.redirect("/")
-        else:
-            error = "We need both a title and some artwork!"
-            self.render_front(title, art, error)
-
     
+class NewPostHandler(Handler):
+    def render_page(self, subject="", content="", error=""):
+        #self.render("newpost.html", subject, content, error)
+        self.render("newpost.html", subject=subject, content=content, error=error)
+
+    def get(self):
+        self.render_page()
+
+    def post(self):
+        subject = self.request.get("subject")
+        content = self.request.get("content")
+
+        if subject and content:
+            p = Post(subject = subject, content=content)
+            p.put()
+
+            url = "/" + str(p.key().id())
+            self.redirect(url)
+        else:
+            error = "Oops, we need both subject and content"
+            self.render_page(subject, content, error)
+
+class PostHandler(Handler):
+    def get(self, number):
+        p = db.get_by_id(number)
+        self.render("post.html", post=p)
+
+
 application = webapp2.WSGIApplication([
-    ('/', MainPage),
+    ('/', MainPageHandler),
+    ('/newpost', NewPostHandler),
+    ('/(\d+)', PostHandler),
     ], debug = True)

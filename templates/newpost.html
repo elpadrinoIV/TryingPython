@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+
+<html>
+    <head>
+        <title>BloggY - New Post</title>
+        <link type="text/css" rel="stylesheet" href="/stylesheets/blog.css"/>
+    </head>
+
+    <body>
+        <h1>New Post</h1>
+
+        <form method="post">
+            <label>
+                <div>subject</div>
+                <input type="text" name="subject" value="{{subject}}"/>
+            </label>
+
+            <label>
+                <div>blog</div>
+                <textarea name="content">{{content}}</textarea>
+            </label>
+
+            <div class="error">{{error}}</div>
+
+            <input type="submit"/>
+        </form>
+    </body>
+</html>
