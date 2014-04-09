@@ -59,8 +59,9 @@ class NewPostHandler(Handler):
             self.render_page(subject, content, error)
 
 class PostHandler(Handler):
-    def get(self, number):
-        p = db.get_by_id(number)
+    def get(self, post_id):
+        post_id = long(post_id)
+        p = Post.get_by_id(post_id)
         self.render("post.html", post=p)
 
 
