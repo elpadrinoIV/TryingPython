@@ -1,20 +1,10 @@
-<!DOCTYPE html>
-
-<html>
-    <head>
-        <title>BloggY</title>
-        <link type="text/css" rel="stylesheet" href="/stylesheets/blog.css"/>
-    </head>
-
-    <body>
-        <a href="/" class="main-title">BloggY</a>
-
-        <div class="post">
-            <div class="post-heading">
-                <a href="#" class="post-title">{{post.subject}}</a>
-                <div class="post-date">{{post.created}}</div>
-                <div class="post-content">{{post.content}}</div>
-            </div>
-        </div>
-    </body>
-</html>
+{% extends "base.html" %}
+{% block body_content %}
+<div class="post">
+    <div class="post-heading">
+        <a href="#" class="post-title">{{post.subject}}</a>
+        <div class="post-date">{{post.created}}</div>
+        <div class="post-content">{{post.content}}</div>
+    </div>
+</div>
+{% endblock %}
