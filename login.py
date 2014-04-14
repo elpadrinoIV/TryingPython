@@ -3,6 +3,7 @@ import hmac
 import random
 import re
 import string
+from google.appengine.ext import db
 
 ########## REGEX VALIDATION ##########
 USER_RE = re.compile(r"^[a-zA-Z0-9_-]{3,20}$")
@@ -45,4 +46,20 @@ def make_password_hash(name, pw, salt = None):
 def valid_password(name, pw, h):
     salt = h.split(',')[1]
     return h == make_password_hash(name, pw, salt)
+
+def exists_user(username):
+    query = "SELECT * FROM User WHERE name='%s'" % username
+    user = db.GqlQuery(query).get()
+    if user:
+        return True
+    else:
+        return False
+
+def valid_username_and_password(username, password):
+    query = "SELECT * FROM User WHERE name='%s'" % username
+    user = db.GqlQuery(query).get()
+    if user:
+        h = user.password
+        if valid_password(username, password, h):
+            return user
 

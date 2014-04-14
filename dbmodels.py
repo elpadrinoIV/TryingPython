@@ -11,11 +11,4 @@ class User(db.Model):
     email = db.EmailProperty()
     created = db.DateTimeProperty(auto_now_add = True)
 
-def exists_user(username):
-    query = "SELECT * FROM User WHERE name='%s'" % username
-    user = db.GqlQuery(query).get()
-    if user:
-        return True
-    else:
-        return False
 

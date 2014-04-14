@@ -89,7 +89,7 @@ class SignUpHandler(Handler):
             params["error_username"] = "Nombre de usuario invalido"
             error_en_form = True
         else:
-            existe_user = dbmodels.exists_user(username)
+            existe_user = login.exists_user(username)
             if existe_user:
                 params["error_username"] = "Usuario ya existe"
                 error_en_form = True
@@ -122,7 +122,7 @@ class SignUpHandler(Handler):
 
             user_id_cookie_value = login.make_secure_value(user_id)
 
-            self.response.headers.add_header('Set-Cookie', 'user_id=%s' % user_id_cookie_value)
+            self.response.headers.add_header('Set-Cookie', 'user_id=%s; Path=/' % user_id_cookie_value)
             self.redirect("/welcome")
 
 
@@ -146,6 +146,34 @@ class WelcomeHandler(Handler):
             self.redirect("/signup")
 
 
+########## LOGIN HANDLER ##########
+class LoginHandler(Handler):
+    def render_page(self, error = ""):
+        self.render("login.html", error_login = error)
+
+    def get(self):
+        self.render_page()
+
+    def post(self):
+        username = self.request.get("username")
+        password = self.request.get("password")
+
+        login_correcto = False
+        error = "Invalid user and pass"
+
+        if username and password:
+            user = login.valid_username_and_password(username, password)
+            if user:
+                login_correcto = True
+                user_id = str(user.key().id())
+
+                user_id_cookie_value = login.make_secure_value(user_id)
+                self.response.headers.add_header('Set-Cookie', 'user_id=%s; Path=/' % user_id_cookie_value)
+
+        if login_correcto:
+            self.redirect('/welcome')
+        else:
+            self.render_page(error)
 
 
 

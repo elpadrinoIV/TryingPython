@@ -3,6 +3,7 @@ import webapp2
 
 application = webapp2.WSGIApplication([
     ('/', handlers.MainPageHandler),
+    ('/login', handlers.LoginHandler),
     ('/newpost', handlers.NewPostHandler),
     ('/signup', handlers.SignUpHandler),
     ('/welcome', handlers.WelcomeHandler),
