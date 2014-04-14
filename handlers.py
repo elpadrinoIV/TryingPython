@@ -85,34 +85,66 @@ class SignUpHandler(Handler):
 
         error_en_form = False
 
-        if not login.valid_username(username):
+        if not login.valid_username_form(username):
             params["error_username"] = "Nombre de usuario invalido"
             error_en_form = True
+        else:
+            existe_user = dbmodels.exists_user(username)
+            if existe_user:
+                params["error_username"] = "Usuario ya existe"
+                error_en_form = True
+                
 
-        if not login.valid_password(password):
+        if not login.valid_password_form(password):
             params["error_password"] = "Contrasena invalida"
             error_en_form = True
         elif password != verify:
             params["error_verify"] = "Las contrasenas son distintas"
             error_en_form = True
 
-        if not login.valid_email(email):
+        if not login.valid_email_form(email):
             params["error_email"] = "email invalido"
             error_en_form = True
 
         if error_en_form:
             self.render_page(**params)
         else:
-            username = str(username)
-            self.response.headers.add_header('Set-Cookie', 'username=%s' % username)
+            password_hash = login.make_password_hash(username, password)
+
+            user = dbmodels.User(name = username, password = password_hash)
+
+            if email:
+                user.email = email
+
+            user.put()
+
+            user_id = str(user.key().id())
+
+            user_id_cookie_value = login.make_secure_value(user_id)
+
+            self.response.headers.add_header('Set-Cookie', 'user_id=%s' % user_id_cookie_value)
             self.redirect("/welcome")
 
 
 ########## WELCOME HANDLER ##########
 class WelcomeHandler(Handler):
     def get(self):
-        username = self.request.cookies.get('username', '')
-        self.render("welcome.html", username=username)
+        user_id_cookie_string = self.request.cookies.get('user_id')
+        error = True
+        if user_id_cookie_string:
+            cookie_value = login.check_secure_value(user_id_cookie_string)
+            if cookie_value:
+                user_id = long(cookie_value)
+                user = dbmodels.User.get_by_id(user_id)
+
+                if user:
+                    error = False
+                    self.render("welcome.html", username=user.name)
+
+
+        if error:
+            self.redirect("/signup")
+
 
 
 

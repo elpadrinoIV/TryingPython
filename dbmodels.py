@@ -8,7 +8,14 @@ class Post(db.Model):
 class User(db.Model):
     name = db.StringProperty(required = True)
     password = db.StringProperty(required = True)
-    salt = db.StringProperty(required = True)
-    email = db.EmailProperty(required = False)
+    email = db.EmailProperty()
     created = db.DateTimeProperty(auto_now_add = True)
+
+def exists_user(username):
+    query = "SELECT * FROM User WHERE name='%s'" % username
+    user = db.GqlQuery(query).get()
+    if user:
+        return True
+    else:
+        return False
 
