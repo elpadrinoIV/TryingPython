@@ -4,6 +4,7 @@ import jinja2
 import dbmodels
 from google.appengine.ext import db
 import login
+import cookies
 
 template_dir = os.path.join(os.path.dirname(__file__), 'templates')
 jinja_env = jinja2.Environment(loader = jinja2.FileSystemLoader(template_dir),
@@ -11,7 +12,7 @@ jinja_env = jinja2.Environment(loader = jinja2.FileSystemLoader(template_dir),
 
 
 ########## BASE HANDLER ##########
-class Handler(webapp2.RequestHandler):
+class BlogHandler(webapp2.RequestHandler):
     def write(self, *a, **kw):
         self.response.out.write(*a, **kw)
 
@@ -22,9 +23,29 @@ class Handler(webapp2.RequestHandler):
     def render(self, template, **kw):
         self.write(self.render_str(template, **kw))
 
+    def set_secure_cookie(self, name, val):
+        cookie_val = cookies.make_secure_value(val)
+        self.response.headers.add_header('Set-Cookie', '%s=%s; Path=/'
+                                         % (name, cookie_val))
+
+    def read_secure_cookie(self, name):
+        cookie_val = self.request.cookies.get(name)
+        return cookie_val and cookies.check_secure_value(cookie_val)
+
+    def login(self, user):
+        self.set_secure_cookie('user_id', str(user.key().id()))
+
+    def logout(self):
+        self.response.delete_cookie('user_id')
+
+    def initialize(self, *a, **kw):
+        webapp2.RequestHandler.initialize(self, *a, **kw)
+        user_id = self.read_secure_cookie('user_id')
+        self.user = user_id and dbmodels.User.by_id(int(user_id))
+
 
 ########## MAIN PAGE HANDLER ##########
-class MainPageHandler(Handler):
+class MainPageHandler(BlogHandler):
     def render_front(self, posts=""):
         posts = db.GqlQuery("SELECT * FROM Post ORDER BY created DESC LIMIT 10")
 
@@ -35,7 +56,7 @@ class MainPageHandler(Handler):
 
 
 ########## NEW POST HANDLER ##########
-class NewPostHandler(Handler):
+class NewPostHandler(BlogHandler):
     def render_page(self, subject="", content="", error=""):
         self.render("newpost.html", subject=subject, content=content, error=error)
 
@@ -58,7 +79,7 @@ class NewPostHandler(Handler):
 
 
 ########## POST HANDLER ##########
-class PostHandler(Handler):
+class PostHandler(BlogHandler):
     def get(self, post_id):
         post_id = long(post_id)
         p = dbmodels.Post.get_by_id(post_id)
@@ -66,7 +87,7 @@ class PostHandler(Handler):
 
 
 ########## SIGN UP HANDLER ##########
-class SignUpHandler(Handler):
+class SignUpHandler(BlogHandler):
     def render_page(self, **params):
         self.render("signup.html", **params)
 
@@ -89,12 +110,11 @@ class SignUpHandler(Handler):
             params["error_username"] = "Nombre de usuario invalido"
             error_en_form = True
         else:
-            existe_user = login.exists_user(username)
-            if existe_user:
+            u = dbmodels.User.by_name(username)
+            if u:
                 params["error_username"] = "Usuario ya existe"
                 error_en_form = True
                 
-
         if not login.valid_password_form(password):
             params["error_password"] = "Contrasena invalida"
             error_en_form = True
@@ -109,45 +129,25 @@ class SignUpHandler(Handler):
         if error_en_form:
             self.render_page(**params)
         else:
-            password_hash = login.make_password_hash(username, password)
-
-            user = dbmodels.User(name = username, password = password_hash)
-
-            if email:
-                user.email = email
-
+            user = dbmodels.User.register(username, password, email)
             user.put()
 
-            user_id = str(user.key().id())
+            self.login(user)
 
-            user_id_cookie_value = login.make_secure_value(user_id)
-
-            self.response.headers.add_header('Set-Cookie', 'user_id=%s; Path=/' % user_id_cookie_value)
             self.redirect("/welcome")
 
 
 ########## WELCOME HANDLER ##########
-class WelcomeHandler(Handler):
+class WelcomeHandler(BlogHandler):
     def get(self):
-        user_id_cookie_string = self.request.cookies.get('user_id')
-        error = True
-        if user_id_cookie_string:
-            cookie_value = login.check_secure_value(user_id_cookie_string)
-            if cookie_value:
-                user_id = long(cookie_value)
-                user = dbmodels.User.get_by_id(user_id)
-
-                if user:
-                    error = False
-                    self.render("welcome.html", username=user.name)
-
-
-        if error:
+        if self.user:
+            self.render("welcome.html", username = self.user.name)
+        else:
             self.redirect("/signup")
 
 
 ########## LOGIN HANDLER ##########
-class LoginHandler(Handler):
+class LoginHandler(BlogHandler):
     def render_page(self, error = ""):
         self.render("login.html", error_login = error)
 
@@ -158,26 +158,18 @@ class LoginHandler(Handler):
         username = self.request.get("username")
         password = self.request.get("password")
 
-        login_correcto = False
-        error = "Invalid user and pass"
-
-        if username and password:
-            user = login.valid_username_and_password(username, password)
-            if user:
-                login_correcto = True
-                user_id = str(user.key().id())
-
-                user_id_cookie_value = login.make_secure_value(user_id)
-                self.response.headers.add_header('Set-Cookie', 'user_id=%s; Path=/' % user_id_cookie_value)
-
-        if login_correcto:
+        user = dbmodels.User.validate(username, password)
+        if user:
+            self.login(user)
             self.redirect('/welcome')
         else:
+            error = "Invalid user and pass"
             self.render_page(error)
 
 
+
 ########## LOGOUT HANDLER ##########
-class LogoutHandler(Handler):
+class LogoutHandler(BlogHandler):
     def get(self):
         self.response.delete_cookie('user_id')
         self.redirect('/signup')
