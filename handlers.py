@@ -176,4 +176,8 @@ class LoginHandler(Handler):
             self.render_page(error)
 
 
-
+########## LOGOUT HANDLER ##########
+class LogoutHandler(Handler):
+    def get(self):
+        self.response.delete_cookie('user_id')
+        self.redirect('/signup')
