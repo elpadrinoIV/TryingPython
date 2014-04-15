@@ -9,4 +9,6 @@ application = webapp2.WSGIApplication([
     ('/signup', handlers.SignUpHandler),
     ('/welcome', handlers.WelcomeHandler),
     ('/(\d+)', handlers.PostHandler),
+    ('/.json', handlers.MainPageJsonHandler),
+    ('/(\d+).json', handlers.PostJsonHandler),
     ], debug = True)

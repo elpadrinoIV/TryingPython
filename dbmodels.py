@@ -1,10 +1,15 @@
 from google.appengine.ext import db
 import cookies
+import json
 
 class Post(db.Model):
     subject = db.StringProperty(required = True)
     content = db.TextProperty(required = True)
     created = db.DateTimeProperty(auto_now_add = True)
+
+    def toJson(self):
+        p = {'content': self.content, 'subject': self.subject}
+        return json.dumps(p)
 
 class User(db.Model):
     name = db.StringProperty(required = True)

@@ -44,6 +44,20 @@ class BlogHandler(webapp2.RequestHandler):
         self.user = user_id and dbmodels.User.by_id(int(user_id))
 
 
+class JsonHandler(webapp2.RequestHandler):
+    def write(self, *a, **kw):
+        self.response.headers['Content-Type'] = 'application/json'
+        self.response.out.write(*a, **kw)
+
+#    def render_str(self, template, **params):
+#        t = jinja_env.get_template(template)
+#        return t.render(params)
+
+#    def render(self, template, **kw):
+#        self.write(self.render_str(template, **kw))
+
+
+
 ########## MAIN PAGE HANDLER ##########
 class MainPageHandler(BlogHandler):
     def render_front(self, posts=""):
@@ -173,3 +187,28 @@ class LogoutHandler(BlogHandler):
     def get(self):
         self.response.delete_cookie('user_id')
         self.redirect('/signup')
+
+
+########## POST JSON HANDLER ##########
+class PostJsonHandler(JsonHandler):
+    def get(self, post_id):
+        json_string = ""
+        post_id = long(post_id)
+        p = dbmodels.Post.get_by_id(post_id)
+        if p:
+            json_string = p.toJson()
+
+        self.write(json_string)
+
+########## MAIN PAGE JSON HANDLER ##########
+class MainPageJsonHandler(JsonHandler):
+    def get(self):
+        posts = db.GqlQuery("SELECT * FROM Post ORDER BY created DESC LIMIT 10")
+        posts = list(posts)
+
+        json_string = "["
+        json_string += ",".join(post.toJson() for post in posts)
+        json_string += "]"
+
+        self.write(json_string)
+
