@@ -1,10 +1,13 @@
 {% extends "base.html" %}
 {% block body_content %}
-<div class="post">
-    <div class="post-heading">
-        <a href="#" class="post-title">{{post.subject}}</a>
-        <div class="post-date">{{post.created}}</div>
+<div id="content">
+    <div class="post">
+        <div class="post-heading">
+            <a href="#" class="post-title">{{post.subject}}</a>
+            <div class="post-date">{{post.created}}</div>
+        </div>
         <div class="post-content">{{post.content}}</div>
     </div>
+    <div class="age">Queried {{ultimo_query}} seconds ago</div>
 </div>
 {% endblock %}

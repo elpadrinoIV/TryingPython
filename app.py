@@ -11,4 +11,5 @@ application = webapp2.WSGIApplication([
     ('/(\d+)', handlers.PostHandler),
     ('/.json', handlers.MainPageJsonHandler),
     ('/(\d+).json', handlers.PostJsonHandler),
+    ('/flush', handlers.FlushHandler),
     ], debug = True)

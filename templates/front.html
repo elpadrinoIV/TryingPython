@@ -1,13 +1,19 @@
 {% extends "base.html" %}
 
 {% block body_content %}
+<div id="content">
 {% for post in posts %}
-<div class="post">
-    <div class="post-heading">
-        <a href="/{{post.key().id()}}" class="post-title">{{post.subject}}</a>
-        <div class="post-date">{{post.created}}</div>
+    <div class="post">
+        <div class="post-heading">
+            <a href="/{{post.key().id()}}" class="post-title">{{post.subject}}</a>
+            <div class="post-date">{{post.created}}</div>
+        </div>
         <div class="post-content">{{post.content}}</div>
     </div>
-</div>
 {% endfor %}
+</div>
+
+<br/>
+<br/>
+<div class="age">Queried {{ultimo_query}} seconds ago</div>
 {% endblock %}

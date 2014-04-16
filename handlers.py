@@ -3,14 +3,42 @@ import webapp2
 import jinja2
 import dbmodels
 from google.appengine.ext import db
+from google.appengine.api import memcache
 import login
 import cookies
+import logging
+import time
 
 template_dir = os.path.join(os.path.dirname(__file__), 'templates')
 jinja_env = jinja2.Environment(loader = jinja2.FileSystemLoader(template_dir),
                                autoescape = True)
 
 
+def last_posts(update = False):
+    key = 'last_posts'
+    posts = memcache.get(key)
+
+    if posts is None or update:
+        logging.error("DB QUERY")
+        posts = db.GqlQuery("SELECT * FROM Post ORDER BY created DESC LIMIT 10")
+        time_last_query("top", True)
+        posts = list(posts)
+        memcache.set(key, posts)
+
+    return posts
+
+def time_last_query(which, update = False):
+    key = 'time_last_query%s' % which
+    t = memcache.get(key)
+
+    if t is None or update:
+        t = time.time()
+        memcache.set(key, t)
+
+    return t
+
+
+    
 ########## BASE HANDLER ##########
 class BlogHandler(webapp2.RequestHandler):
     def write(self, *a, **kw):
@@ -49,21 +77,15 @@ class JsonHandler(webapp2.RequestHandler):
         self.response.headers['Content-Type'] = 'application/json'
         self.response.out.write(*a, **kw)
 
-#    def render_str(self, template, **params):
-#        t = jinja_env.get_template(template)
-#        return t.render(params)
-
-#    def render(self, template, **kw):
-#        self.write(self.render_str(template, **kw))
-
-
 
 ########## MAIN PAGE HANDLER ##########
 class MainPageHandler(BlogHandler):
     def render_front(self, posts=""):
-        posts = db.GqlQuery("SELECT * FROM Post ORDER BY created DESC LIMIT 10")
-
-        self.render("front.html", posts=posts)
+        posts = last_posts()
+        last_query = time_last_query("top")
+        ahora = time.time()
+        diferencia = int(round(ahora - last_query))
+        self.render("front.html", posts=posts, ultimo_query=diferencia)
 
     def get(self):
         self.render_front()
@@ -85,6 +107,9 @@ class NewPostHandler(BlogHandler):
             p = dbmodels.Post(subject = subject, content=content)
             p.put()
 
+            last_posts(True)
+            time_last_query(p.key().id(), True)
+
             url = "/" + str(p.key().id())
             self.redirect(url)
         else:
@@ -97,7 +122,10 @@ class PostHandler(BlogHandler):
     def get(self, post_id):
         post_id = long(post_id)
         p = dbmodels.Post.get_by_id(post_id)
-        self.render("post.html", post=p)
+        last_query = time_last_query(post_id)
+        ahora = time.time()
+        diferencia = int(round(ahora - last_query))
+        self.render("post.html", post = p, ultimo_query = diferencia)
 
 
 ########## SIGN UP HANDLER ##########
@@ -203,8 +231,7 @@ class PostJsonHandler(JsonHandler):
 ########## MAIN PAGE JSON HANDLER ##########
 class MainPageJsonHandler(JsonHandler):
     def get(self):
-        posts = db.GqlQuery("SELECT * FROM Post ORDER BY created DESC LIMIT 10")
-        posts = list(posts)
+        posts = last_posts()
 
         json_string = "["
         json_string += ",".join(post.toJson() for post in posts)
@@ -212,3 +239,9 @@ class MainPageJsonHandler(JsonHandler):
 
         self.write(json_string)
 
+
+class FlushHandler(BlogHandler):
+    def get(self):
+        memcache.flush_all()
+        self.redirect('/')
+        
