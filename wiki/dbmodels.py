@@ -1,4 +1,5 @@
 from google.appengine.ext import db
+import utils
 
 class WikiPage(db.Model):
     name = db.StringProperty(required = True)
@@ -21,10 +22,9 @@ class User(db.Model):
         u = cls.all().filter('name =', name).get()
         return u
 
-"""
     @classmethod
     def register(cls, name, password, email = None):
-        pw_hash = cookies.make_password_hash(name, password)
+        pw_hash = utils.make_password_hash(name, password)
         u = cls(name = name, password_hash = pw_hash)
         if email:
             u.email = email
@@ -33,7 +33,6 @@ class User(db.Model):
     @classmethod
     def validate(cls, name, password):
         u = cls.by_name(name)
-        if u and cookies.valid_password(name, password, u.password_hash):
+        if u and utils.valid_password(name, password, u.password_hash):
             return u
 
-"""
