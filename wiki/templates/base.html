@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+
+<html>
+    <head>
+        <title>WikkY</title>
+        <link type="text/css" rel="stylesheet" href="/stylesheets/main.css"/>
+    </head>
+
+    <body>
+        <a href="/" class="main-title">WikkY</a>
+
+        <div class="controles">
+
+            {% if edit_link %}
+            <a href="{{edit_link}}">edit</a>
+            {% endif %}
+
+            {% if user %}
+            <span>{{user.name}} (<a href="/logout">logout</a>)</span>
+            {% else %}
+            <a href="/login">login</a>
+            {% endif %}
+        </div>
+
+
+        {% block body_content %}
+        {% endblock %}
+
+
+    </body>
+</html>
