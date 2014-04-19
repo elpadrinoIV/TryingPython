@@ -92,3 +92,13 @@ input[type=submit] {
     color: gray;
     font-size: 12px;
 }
+
+td {
+    padding: 10px 10px;
+}
+
+td.history_snip {
+    color: #777777;
+  font-family: monospace;
+}
+

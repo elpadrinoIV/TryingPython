@@ -11,10 +11,24 @@ template_dir = os.path.join(os.path.dirname(__file__), 'templates')
 jinja_env = jinja2.Environment(loader = jinja2.FileSystemLoader(template_dir),
                                autoescape = True)
 
-
-def get_page(page_name, created = None, update = False):
+"""
+def get_page(page_name, page_id = None, update = False):
     key = page_name
-    page = memcache.get(key)
+    pages = memcache.get(key)
+
+    if pages is None or update:
+        query = "SELECT * FROM WikiPage WHERE name='%s' ORDER BY created DESC" % page_name
+        logging.error("QUERY: %s" % query)
+        pages = db.GqlQuery(query)
+        pages = list(pages)
+        memcache.set(key, pages)
+
+    if pages:
+        return pages[0]
+
+def get_historia(page_name, update = False):
+    key = page_name
+    historia = memcache.get(key)
 
     if page is None or update:
         query = "SELECT * FROM WikiPage WHERE name='%s' ORDER BY created DESC LIMIT 10" % page_name
@@ -23,11 +37,12 @@ def get_page(page_name, created = None, update = False):
         memcache.set(key, page)
 
     return page
+"""
 
 def save_page(page_name, content):
     wiki_page = dbmodels.WikiPage(name = page_name, content = content)
     wiki_page.put()
-    memcache.set(page_name, wiki_page)
+    # memcache.set(page_name, wiki_page)
 
 ########## BASE HANDLER ##########
 class Handler(webapp2.RequestHandler):
@@ -40,6 +55,10 @@ class Handler(webapp2.RequestHandler):
 
     def render(self, template, **kw):
         self.write(self.render_str(template, user = self.user, **kw))
+
+    def not_found(self):
+        self.write("Not Found")
+
 
     def set_secure_cookie(self, name, val):
         cookie_val = utils.make_secure_value(val)
@@ -65,14 +84,35 @@ class Handler(webapp2.RequestHandler):
 ########## WIKI HANDLER ##########
 class WikiPageHandler(Handler):
     def get(self, page_name):
-        logging.error("PAGE_NAME: %s" % page_name)
-        page = get_page(page_name)
+        version = self.request.get("v")
+        logging.error("PAGE_NAME: %s, ?v=%s" % (page_name, version))
+
+        page = None
+
+        if version:
+            version = long(version)
+            page = dbmodels.WikiPage.by_id(version, page_name)
+            if page is None:
+                self.not_found()
+                return
+        else:
+            # page = get_page(page_name)
+            page = dbmodels.WikiPage.by_name(page_name).get()
+
         if page:
             # la muestro
             edit_link = "/_edit%s" % page_name
+            if version:
+                edit_link += "?v=%s" % version
+
+            history_link = "/_history%s" % page_name
+
             content = page.content
             content = content.replace("\n", '<br/>')
-            self.render("page.html", content = content, edit_link = edit_link)
+            self.render("page.html",
+                        content = content,
+                        edit_link = edit_link,
+                        history_link = history_link)
         else:
             # editar
             self.redirect('/_edit%s' % page_name)
@@ -83,7 +123,18 @@ class WikiPageHandler(Handler):
 class EditPageHandler(Handler):
     def get(self, page_name):
         if self.user:
-            page = get_page(page_name)
+            version = self.request.get("v")
+            page = None
+            if version:
+                version = long(version)
+                page = dbmodels.WikiPage.by_id(version, page_name)
+                if page is None:
+                    self.not_found()
+                    return
+            else:
+                # page = get_page(page_name)
+                page = dbmodels.WikiPage.by_name(page_name).get()
+
             content = ""
             if page:
                 content = page.content
@@ -180,4 +231,29 @@ class LogoutHandler(Handler):
         self.response.delete_cookie('user_id')
         self.redirect('/')
 
+
+########## HISTORY HANDLER ##########
+class HistoryHandler(Handler):
+    def get(self, page_name):
+        historia = dbmodels.WikiPage.by_name(page_name)
+        historia = list(historia)
+
+        historia_for_jinja = []
+
+        if historia:
+            for edicion in historia:
+                fecha = edicion.created
+                snip = edicion.content[:100]
+                view_link = "%s?v=%s" % (page_name, edicion.key().id())
+                edit_link = "/_edit%s?v=%s" % (page_name, edicion.key().id())
+
+                historia_for_jinja.append({'fecha': fecha,
+                                           'snip': snip,
+                                           'view_link': view_link,
+                                           'edit_link': edit_link})
+                                       
+                                       
+            self.render("historia.html", historia = historia_for_jinja)
+        else:
+            self.redirect('/')
 
