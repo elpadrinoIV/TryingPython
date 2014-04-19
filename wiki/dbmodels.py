@@ -6,6 +6,16 @@ class WikiPage(db.Model):
     content = db.TextProperty(required = True)
     created = db.DateTimeProperty(auto_now_add = True)
 
+    @classmethod
+    def by_name(cls, page_name):
+        q = cls.all().filter('name =', page_name)
+        q.order("-created")
+        return q
+
+    @classmethod
+    def by_id(cls, page_id, page_name):
+        return cls.get_by_id(page_id)
+
 
 class User(db.Model):
     name = db.StringProperty(required = True)

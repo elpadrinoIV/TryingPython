@@ -15,3 +15,9 @@ indexes:
   - name: name
   - name: created
     direction: desc
+
+- kind: WikiPage
+  properties:
+  - name: name=
+  - name: created
+    direction: desc

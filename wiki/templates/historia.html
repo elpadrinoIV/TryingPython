@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block body_content %}
+<div class="content">
+    <table class="history">
+        <tbody>
+            {% for edicion in historia %}
+            <tr>
+                <td>{{edicion.fecha}}</td>
+                <td class="history_snip">{{edicion.snip}}</td>
+                <td><a href="{{edicion.view_link}}">view</a></td>
+                <td><a href="{{edicion.edit_link}}">edit</a></td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}
